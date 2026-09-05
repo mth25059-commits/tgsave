@@ -1,0 +1,10 @@
+# secrets and state — never commit
+config.env
+data/
+*.session
+*.session-journal
+
+# python
+venv/
+__pycache__/
+*.py[cod]
