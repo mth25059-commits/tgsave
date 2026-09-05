@@ -51,52 +51,55 @@ def clock(seconds) -> str:
     return f"{seconds // 3600}h {(seconds % 3600) // 60}m"
 
 
-class Progress:
-    """Throttled progress bar. One instance per transfer."""
+def bar(status_msg, job: Job, verb: str, note: str = ""):
+    """Build a throttled progress callback for one transfer.
 
-    def __init__(self, status_msg, job: Job, verb: str, note: str = ""):
-        self.msg = status_msg
-        self.job = job
-        self.verb = verb
-        self.note = note
-        self.began = time.monotonic()
-        self.last_edit = 0.0
+    This has to be a real async function, not a class with an async __call__:
+    Pyrogram decides how to invoke the callback with inspect.iscoroutinefunction,
+    which is False for a callable instance — so it hands the object to a thread
+    executor and throws away the coroutine it gets back. Result: a status message
+    that never moves, and a cancel check that can never raise.
+    """
+    began = time.monotonic()
+    throttle = {"last": 0.0}
 
-    async def __call__(self, done, total):
-        if self.job.cancel:
+    async def report(done, total):
+        if job.cancel:
             raise Cancelled()
-        if not self.msg:
+        if not status_msg:
             return
 
         now = time.monotonic()
         finished = total and done >= total
-        if not finished and now - self.last_edit < config.PROGRESS_EVERY:
+        if not finished and now - throttle["last"] < config.PROGRESS_EVERY:
             return
-        self.last_edit = now
+        throttle["last"] = now
 
-        elapsed = max(0.001, now - self.began)
+        elapsed = max(0.001, now - began)
         speed = done / elapsed
         share = (done / total) if total else 0
         filled = int(BAR_LEN * share)
-        bar = "█" * filled + "░" * (BAR_LEN - filled)
         eta = clock((total - done) / speed) if speed and total else "?"
 
         text = (
-            f"{self.verb}\n"
-            f"`{bar}` {share * 100:.1f}%\n"
+            f"{verb}\n"
+            f"`{'█' * filled}{'░' * (BAR_LEN - filled)}` {share * 100:.1f}%\n"
             f"{human(done)} / {human(total)}  •  {human(speed)}/s\n"
             f"ETA {eta}"
         )
-        if self.note:
-            text = f"{self.note}\n\n{text}"
+        if note:
+            text = f"{note}\n\n{text}"
+
         try:
-            await self.msg.edit_text(text)
+            await status_msg.edit_text(text)
         except MessageNotModified:
             pass
         except FloodWait as wait:
-            self.last_edit = now + wait.value
+            throttle["last"] = now + wait.value
         except Exception:
             pass
+
+    return report
 
 
 KINDS = ("video", "photo", "document", "audio", "animation",
@@ -132,7 +135,7 @@ async def pull(user, msg, status, job, note=""):
         return await user.download_media(
             msg,
             file_name=os.path.join(job.dir, ""),
-            progress=Progress(status, job, "⬇️  Downloading", note),
+            progress=bar(status, job, "⬇️  Downloading", note),
         )
     except Cancelled:
         return None
@@ -147,7 +150,7 @@ async def push(message, src, path, status, job, thumb=None, note=""):
     """Re-upload a downloaded file, keeping its original type and attributes."""
     kind, _ = describe(src)
     caption = (src.caption or "")[: config.CAPTION_LIMIT] or None
-    extra = dict(caption=caption, progress=Progress(status, job, "⬆️  Uploading", note))
+    extra = dict(caption=caption, progress=bar(status, job, "⬆️  Uploading", note))
 
     if kind == "video" and src.video:
         clip = src.video
