@@ -85,14 +85,20 @@ bot.py       handlers, /login conversation, boot
 grab.py      download → re-upload engine, progress, cancellation
 links.py     link parser
 config.py    config.env loader
+compat.py    widens Pyrogram's peer id ranges
 install.sh   apt + venv + systemd, idempotent
 ```
 
-Five files, three dependencies, no database. State lives in one dict in
+Six files, three dependencies, no database. State lives in one dict in
 `bot.py`; a restart is a clean slate on purpose.
 
 ## Notes worth knowing
 
+- **Pyrogram 2.0.106 cannot see modern channels out of the box.** Its
+  `MIN_CHANNEL_ID` caps raw channel ids at 2³¹, and Telegram has long since gone
+  past that, so `t.me/c/3980676358/790` dies on `Peer id invalid` before a single
+  request leaves the machine — nothing to do with the account or the link.
+  `compat.py` widens the bounds to the current TDLib values.
 - **Files keep their names.** Pyrogram runs `os.path.split()` on `file_name`, so
   passing a bare directory silently renames every download after the directory
   itself. `grab.py` passes a trailing separator, which is what preserves the

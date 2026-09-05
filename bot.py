@@ -20,6 +20,7 @@ from pyrogram.errors import (
     UsernameNotOccupied,
 )
 
+import compat            # widens Pyrogram's peer id ranges — must land first
 import config
 import grab
 import links
@@ -112,10 +113,14 @@ async def warm_peers():
 
 
 async def get_post(chat, message_id):
-    """Fetch one source post, priming the peer cache if the id is cold."""
+    """Fetch one source post, priming the peer cache if the id is cold.
+
+    ValueError belongs in here too: a private id that is not cached yet gets as
+    far as Pyrogram's range check, and a cached one never does.
+    """
     try:
         return await user.get_messages(chat, message_id)
-    except (PeerIdInvalid, ChannelInvalid, KeyError):
+    except (PeerIdInvalid, ChannelInvalid, KeyError, ValueError):
         if state["warmed"]:
             raise
         await warm_peers()
