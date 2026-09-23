@@ -42,6 +42,7 @@ bot = Client(
     bot_token=config.BOT_TOKEN,
     workdir=config.DATA_DIR,
     in_memory=True,
+    max_concurrent_transmissions=config.TRANSFER_LANES,
 )
 
 user = Client(
@@ -50,6 +51,7 @@ user = Client(
     api_hash=config.API_HASH,
     workdir=config.DATA_DIR,
     no_updates=True,
+    max_concurrent_transmissions=config.TRANSFER_LANES,
 )
 
 owner = filters.create(

@@ -46,6 +46,13 @@ BATCH_GAP = 1.5                 # seconds between posts in a batch
 PROGRESS_EVERY = 5.0            # seconds between progress-bar edits
 CAPTION_LIMIT = 1024
 
+# How many chunks Pyrogram moves at once per transfer. Default in the library is
+# 1 — a single connection, which is why a big file crawls. More lanes = more
+# parallel connections to Telegram's DC, roughly linear speed-up until the pipe
+# or the DC is the limit. Kept modest: this rides a personal account, and a
+# swarm of connections is exactly what trips FloodWait and account flags.
+TRANSFER_LANES = _int("TRANSFER_LANES", 6) or 6
+
 
 def problems() -> list:
     """Return a list of human-readable config problems. Empty list = good to go."""

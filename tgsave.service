@@ -11,5 +11,10 @@ ExecStart=/opt/tgsave/venv/bin/python -u bot.py
 Restart=always
 RestartSec=5
 
+# Keep this bot inside 2 GB — the box's other 6 GB stays free for everything
+# else. MemoryHigh throttles first (soft), MemoryMax is the hard ceiling.
+MemoryHigh=1800M
+MemoryMax=2G
+
 [Install]
 WantedBy=multi-user.target

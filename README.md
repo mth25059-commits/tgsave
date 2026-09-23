@@ -108,6 +108,11 @@ Six files, three dependencies, no database. State lives in one dict in
   `PeerIdInvalid`, instead of at every start.
 - **Uploads stop at 2 GB.** Above that the bot says so rather than transferring
   gigabytes and failing at the end.
+- **One transfer, many lanes.** Pyrogram moves a single chunk at a time by
+  default, which is why big files crawl. `TRANSFER_LANES` opens several
+  connections to the datacenter at once — roughly linear speed-up until the pipe
+  is the limit. It is kept modest on purpose: a swarm of connections is what
+  trips FloodWait and account flags.
 - **No stdin, ever.** The service uses `connect()`, which returns an
   authorization flag, instead of `start()`, which would block on a tty prompt
   that systemd cannot answer.
@@ -123,5 +128,6 @@ Six files, three dependencies, no database. State lives in one dict in
 | `ADMIN_ID` | — | the only account allowed in, required |
 | `DATA_DIR` | `data` | sessions and in-flight downloads |
 | `MAX_BATCH` | `200` | ceiling for one `/batch` range |
+| `TRANSFER_LANES` | `6` | parallel connections per transfer — the speed dial |
 
 Only save content you are allowed to keep.

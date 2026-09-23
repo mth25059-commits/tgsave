@@ -35,6 +35,10 @@ ExecStart=$APP/venv/bin/python -u bot.py
 Restart=always
 RestartSec=5
 
+# Hold the bot to 2 GB; the rest of the box stays free for other work.
+MemoryHigh=1800M
+MemoryMax=2G
+
 [Install]
 WantedBy=multi-user.target
 UNIT
